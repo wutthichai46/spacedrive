@@ -446,8 +446,8 @@ impl StatefulJob for IndexerJobInit {
 					vec![
 						ScanProgress::ChunkCount(more_steps.len() - to_walk_count),
 						ScanProgress::Message(format!(
-							"Scanned more {} files or directories; \
-							{} more directories to scan and more {} entries to update",
+							"Scanned {} more files or directories; \
+							{} more directories to scan and {} more entries to update",
 							new_metadata.total_paths,
 							to_walk_count,
 							new_metadata.total_updated_paths
@@ -497,7 +497,7 @@ impl StatefulJob for IndexerJobInit {
 
 		if run_metadata.total_updated_paths > 0 {
 			// Invoking orphan remover here as we probably have some orphans objects due to updates
-			ctx.library.orphan_remover.invoke().await;
+			// ctx.library.orphan_remover.invoke().await;
 		}
 
 		if run_metadata.indexed_count > 0

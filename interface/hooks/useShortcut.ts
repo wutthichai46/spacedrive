@@ -1,40 +1,87 @@
-import { valtioPersist } from '@sd/client';
-import { modifierSymbols } from '@sd/ui';
+import { useMemo } from 'react';
 import { useKeys } from 'rooks';
 import { useSnapshot } from 'valtio';
+import { valtioPersist } from '@sd/client';
+import { modifierSymbols } from '@sd/ui';
+import i18n from '~/app/I18n';
 import { useRoutingContext } from '~/RoutingContext';
 import { OperatingSystem } from '~/util/Platform';
 
 import { useOperatingSystem } from './useOperatingSystem';
 
-//This will be refactored in the near future
-//as we adopt different shortcuts for different platforms
-//aswell. i.e Mobile.
-
-type Shortcut = {
+export type Shortcut = {
 	action: string;
-	keys: {
-		[K in OperatingSystem | 'all']?: string[];
-	};
-	icons: {
-		[K in OperatingSystem | 'all']?: string[];
-	};
+	keys: Partial<Record<OperatingSystem | 'all', string[]>>;
+	icons: Partial<Record<OperatingSystem | 'all', string[]>>;
 };
 
-type ShortcutCategory = {
+export type ShortcutCategory = {
 	description: string;
-  } & Record<string, any> //TODO: fix types
-
-export type TShortcutState = {
-	shortcuts: Record<'Dialogs' | 'Pages' | 'Explorer', ShortcutCategory>;
-  };
-
-export const ShortcutState: TShortcutState = {
-	shortcuts: {
-		Dialogs: {
-			description: 'To perform actions and operations',
+	shortcuts: Record<string, Shortcut>;
+};
+export const shortcutCategories = {
+	[i18n.t('general')]: {
+		description: i18n.t('general_shortcut_description'),
+		shortcuts: {
+			newTab: {
+				action: i18n.t('open_new_tab'),
+				keys: {
+					macOS: ['Meta', 'KeyT'],
+					all: ['Control', 'KeyT']
+				},
+				icons: {
+					macOS: [modifierSymbols.Meta.macOS as string, 'T'],
+					all: [modifierSymbols.Control.Other, 'T']
+				}
+			},
+			closeTab: {
+				action: i18n.t('close_current_tab'),
+				keys: {
+					macOS: ['Meta', 'KeyW'],
+					all: ['Control', 'KeyW']
+				},
+				icons: {
+					macOS: [modifierSymbols.Meta.macOS as string, 'W'],
+					all: [modifierSymbols.Control.Other, 'W']
+				}
+			},
+			nextTab: {
+				action: i18n.t('switch_to_next_tab'),
+				keys: {
+					macOS: ['Meta', 'Alt', 'ArrowRight'],
+					all: ['Control', 'Alt', 'ArrowRight']
+				},
+				icons: {
+					macOS: [
+						modifierSymbols.Meta.macOS as string,
+						modifierSymbols.Alt.macOS as string,
+						'ArrowRight'
+					],
+					all: [modifierSymbols.Control.Other, modifierSymbols.Alt.Other, 'ArrowRight']
+				}
+			},
+			previousTab: {
+				action: i18n.t('switch_to_previous_tab'),
+				keys: {
+					macOS: ['Meta', 'Alt', 'ArrowLeft'],
+					all: ['Control', 'Alt', 'ArrowLeft']
+				},
+				icons: {
+					macOS: [
+						modifierSymbols.Meta.macOS as string,
+						modifierSymbols.Alt.macOS as string,
+						'ArrowLeft'
+					],
+					all: [modifierSymbols.Control.Other, modifierSymbols.Alt.Other, 'ArrowLeft']
+				}
+			}
+		}
+	},
+	[i18n.t('dialog')]: {
+		description: i18n.t('dialog_shortcut_description'),
+		shortcuts: {
 			toggleJobManager: {
-				action: 'Toggle job manager',
+				action: i18n.t('toggle_job_manager'),
 				keys: {
 					macOS: ['Meta', 'KeyJ'],
 					all: ['Control', 'KeyJ']
@@ -44,11 +91,13 @@ export const ShortcutState: TShortcutState = {
 					all: [modifierSymbols.Control.Other, 'J']
 				}
 			}
-		},
-		Pages: {
-			description: 'Different pages in the app',
+		}
+	},
+	[i18n.t('page')]: {
+		description: i18n.t('page_shortcut_description'),
+		shortcuts: {
 			navBackwardHistory: {
-				action: 'Navigate backwards',
+				action: i18n.t('navigate_backwards'),
 				keys: {
 					macOS: ['Meta', '['],
 					all: ['Control', '[']
@@ -59,7 +108,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			navForwardHistory: {
-				action: 'Navigate forwards',
+				action: i18n.t('navigate_forwards'),
 				keys: {
 					macOS: ['Meta', ']'],
 					all: ['Control', ']']
@@ -70,7 +119,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			navToSettings: {
-				action: 'Navigate to Settings page',
+				action: i18n.t('navigate_to_settings_page'),
 				keys: {
 					macOS: ['Shift', 'Meta', 'KeyT'],
 					all: ['Shift', 'Control', 'KeyT']
@@ -84,11 +133,13 @@ export const ShortcutState: TShortcutState = {
 					all: [modifierSymbols.Shift.Other, modifierSymbols.Control.Other, 'T']
 				}
 			}
-		},
-		Explorer: {
-			description: 'To navigate and interact with the file system',
+		}
+	},
+	[i18n.t('explorer')]: {
+		description: i18n.t('explorer_shortcut_description'),
+		shortcuts: {
 			gridView: {
-				action: 'Switch to grid view',
+				action: i18n.t('switch_to_grid_view'),
 				keys: {
 					macOS: ['Meta', '1'],
 					all: ['Control', '1']
@@ -99,7 +150,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			listView: {
-				action: 'Switch to list view',
+				action: i18n.t('switch_to_list_view'),
 				keys: {
 					macOS: ['Meta', '2'],
 					all: ['Control', '2']
@@ -110,7 +161,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			mediaView: {
-				action: 'Switch to media view',
+				action: i18n.t('switch_to_media_view'),
 				keys: {
 					macOS: ['Meta', '3'],
 					all: ['Control', '3']
@@ -121,7 +172,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			showHiddenFiles: {
-				action: 'Toggle hidden files',
+				action: i18n.t('toggle_hidden_files'),
 				keys: {
 					macOS: ['Meta', 'Shift', '.'],
 					all: ['Control', 'KeyH']
@@ -136,7 +187,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			showPathBar: {
-				action: 'Toggle path bar',
+				action: i18n.t('toggle_path_bar'),
 				keys: {
 					macOS: ['Alt', 'Meta', 'KeyP'],
 					all: ['Alt', 'Control', 'KeyP']
@@ -151,7 +202,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			showImageSlider: {
-				action: 'Toggle image slider within quick preview',
+				action: i18n.t('toggle_image_slider_within_quick_preview'),
 				keys: {
 					macOS: ['Alt', 'Meta', 'KeyM'],
 					all: ['Alt', 'Control', 'KeyM']
@@ -166,7 +217,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			showInspector: {
-				action: 'Toggle inspector',
+				action: i18n.t('toggle_inspector'),
 				keys: {
 					macOS: ['Meta', 'KeyI'],
 					all: ['Control', 'KeyI']
@@ -177,7 +228,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			toggleQuickPreview: {
-				action: 'Toggle quick preview',
+				action: i18n.t('toggle_quick_preview'),
 				keys: {
 					all: [' ']
 				},
@@ -186,7 +237,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			toggleMetaData: {
-				action: 'Toggle metadata',
+				action: i18n.t('toggle_metadata'),
 				keys: {
 					macOS: ['Meta', 'KeyI'],
 					all: ['Control', 'KeyI']
@@ -197,7 +248,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			quickPreviewMoveBack: {
-				action: 'Move back within quick preview',
+				action: i18n.t('move_back_within_quick_preview'),
 				keys: {
 					all: ['ArrowLeft']
 				},
@@ -206,7 +257,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			quickPreviewMoveForward: {
-				action: 'Move forward within quick preview',
+				action: i18n.t('move_forward_within_quick_preview'),
 				keys: {
 					all: ['ArrowRight']
 				},
@@ -215,7 +266,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			revealNative: {
-				action: 'Reveal in native file manager',
+				action: i18n.t('reveal_in_native_file_manager'),
 				keys: {
 					macOS: ['Meta', 'KeyY'],
 					all: ['Control', 'KeyY']
@@ -226,7 +277,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			renameObject: {
-				action: 'Rename object',
+				action: i18n.t('rename_object'),
 				keys: {
 					macOS: ['Enter'],
 					all: ['F2']
@@ -237,7 +288,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			rescan: {
-				action: 'Rescan location',
+				action: i18n.t('rescan_location'),
 				keys: {
 					macOS: ['Meta', 'KeyR'],
 					all: ['Control', 'KeyR']
@@ -248,7 +299,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			cutObject: {
-				action: 'Cut object',
+				action: i18n.t('cut_object'),
 				keys: {
 					macOS: ['Meta', 'KeyX'],
 					all: ['Control', 'KeyX']
@@ -259,7 +310,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			copyObject: {
-				action: 'Copy object',
+				action: i18n.t('copy_object'),
 				keys: {
 					macOS: ['Meta', 'KeyC'],
 					all: ['Control', 'KeyC']
@@ -270,7 +321,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			pasteObject: {
-				action: 'Paste object',
+				action: i18n.t('paste_object'),
 				keys: {
 					macOS: ['Meta', 'KeyV'],
 					all: ['Control', 'KeyV']
@@ -281,7 +332,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			duplicateObject: {
-				action: 'Duplicate object',
+				action: i18n.t('duplicate_object'),
 				keys: {
 					macOS: ['Meta', 'KeyD'],
 					all: ['Control', 'KeyD']
@@ -292,7 +343,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			openObject: {
-				action: 'Open object',
+				action: i18n.t('open_object'),
 				keys: {
 					macOS: ['Meta', 'KeyO'],
 					all: ['Enter']
@@ -303,7 +354,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			quickPreviewOpenNative: {
-				action: 'Open object from quick preview in native file manager',
+				action: i18n.t('open_object_from_quick_preview_in_native_file_manager'),
 				keys: {
 					macOS: ['Meta', 'KeyO'],
 					all: ['Enter']
@@ -314,7 +365,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			delItem: {
-				action: 'Delete object',
+				action: i18n.t('delete_object'),
 				keys: {
 					macOS: ['Meta', 'Backspace'],
 					all: ['Delete']
@@ -325,7 +376,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			explorerEscape: {
-				action: 'Cancel selection',
+				action: i18n.t('cancel_selection'),
 				keys: {
 					all: ['Escape']
 				},
@@ -334,7 +385,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			explorerDown: {
-				action: 'Navigate files downwards',
+				action: i18n.t('navigate_files_downwards'),
 				keys: {
 					all: ['ArrowDown']
 				},
@@ -343,7 +394,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			explorerUp: {
-				action: 'Navigate files upwards',
+				action: i18n.t('navigate_files_upwards'),
 				keys: {
 					all: ['ArrowUp']
 				},
@@ -352,7 +403,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			explorerLeft: {
-				action: 'Navigate files leftwards',
+				action: i18n.t('navigate_files_leftwards'),
 				keys: {
 					all: ['ArrowLeft']
 				},
@@ -361,7 +412,7 @@ export const ShortcutState: TShortcutState = {
 				}
 			},
 			explorerRight: {
-				action: 'Navigate files rightwards',
+				action: i18n.t('navigate_files_rightwards'),
 				keys: {
 					all: ['ArrowRight']
 				},
@@ -371,92 +422,31 @@ export const ShortcutState: TShortcutState = {
 			}
 		}
 	}
-};
+} satisfies Record<string, ShortcutCategory>;
 
-export type ShortcutKeybinds = {
-	[C in ShortcutCategories]: {
-		description: string;
-		shortcuts: {
-			action: string;
-			keys: {
-				[K in OperatingSystem | 'all']?: string[];
-			};
-			icons: {
-				[K in OperatingSystem | 'all']?: string[];
-			};
-		}[];
-	};
-};
+export type ShortcutName = {
+	[K in keyof typeof shortcutCategories]: keyof (typeof shortcutCategories)[K]['shortcuts'];
+}[keyof typeof shortcutCategories];
 
-//data being re-arranged for keybindings page
-export const keybindingsData = () => {
-	let shortcuts = {} as ShortcutKeybinds;
-	for (const category in ShortcutState['shortcuts']) {
-		const shortcutCategory = ShortcutState['shortcuts'][category as ShortcutCategories] as ShortcutCategory;
-		const categoryShortcuts: Array<Shortcut> = [];
+export const shortcutsStore = valtioPersist('sd-shortcuts', shortcutCategories);
 
-		for (const shortcut in shortcutCategory) {
-			if (shortcut === 'description') continue;
-			const { keys, icons, action } = shortcutCategory[shortcut as ShortcutKeys] ?? {};
-			if (keys && icons && action) {
-				const categoryShortcut = {
-					icons,
-					action,
-					keys
-				};
-				categoryShortcuts.push(categoryShortcut);
-			}
-			shortcuts = {
-				...shortcuts,
-				[category]: {
-					description: shortcutCategory.description,
-					shortcuts: categoryShortcuts
-				}
-			};
-		}
-	}
-	return shortcuts;
-};
-
-export type ShortcutCategories = keyof typeof ShortcutState['shortcuts'];
-type GetShortcutKeys<Category extends ShortcutCategories> =
-keyof (typeof ShortcutState)['shortcuts'][Category];
-//Not all shortcuts share the same keys (shortcuts) so this needs to be done like this
-//A union type of all categories would return the 'description' only
-type ShortcutKeys = Exclude<
-	GetShortcutKeys<'Pages'> | GetShortcutKeys<'Dialogs'> | GetShortcutKeys<'Explorer'>,
-	'description'
->;
-
-const shortcutsStore = valtioPersist('sd-shortcuts', ShortcutState);
-
-export function useShortcutsStore() {
-	return useSnapshot(shortcutsStore);
-}
-
-export function getShortcutsStore() {
-	return shortcutsStore;
-}
-
-export const useShortcut = (shortcut: ShortcutKeys, func: (e: KeyboardEvent) => void) => {
-	const os = useOperatingSystem();
-	const shortcutsStore = useShortcutsStore();
+export const useShortcut = (shortcut: ShortcutName, func: (e: KeyboardEvent) => void) => {
+	const os = useOperatingSystem(true);
+	const categories = useSnapshot(shortcutsStore);
 	const { visible } = useRoutingContext();
 
-	const triggeredShortcut = () => {
-		const shortcuts = {} as Record<ShortcutKeys, string[]>;
-		for (const category in shortcutsStore['shortcuts']) {
-			const shortcutCategory = shortcutsStore['shortcuts'][category as ShortcutCategories];
-			for (const shortcut in shortcutCategory) {
-				if (shortcut === 'description') continue;
-				const keys = shortcutCategory[shortcut as ShortcutKeys]?.keys;
-				shortcuts[shortcut as ShortcutKeys] = (keys?.[os] || keys?.all) as string[];
-			}
-		}
-		return shortcuts[shortcut] as string[];
-	};
+	const keys = useMemo(() => {
+		if (!visible) return [];
 
-	useKeys(triggeredShortcut(), (e) => {
+		const category = Object.values(categories).find((category) =>
+			Object.prototype.hasOwnProperty.call(category.shortcuts, shortcut)
+		) as ShortcutCategory | undefined;
+		const categoryShortcut = category?.shortcuts[shortcut];
+
+		return categoryShortcut?.keys[os] ?? categoryShortcut?.keys.all ?? [];
+	}, [categories, os, shortcut, visible]);
+
+	useKeys(keys, (e) => {
 		if (!visible) return;
 		return func(e);
 	});
